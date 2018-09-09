@@ -2,7 +2,7 @@
 #include "shared.hpp"
 #include "shared/client_types.hpp"
 
-#ifndef __linux__
+#if defined(_WIN32) || defined(_WIN64)
 #include "Windows.h"
 #include <future>
 #include <intrin.h>
@@ -24,7 +24,7 @@ namespace intercept::cert {
         static void debug_certs_in_store(void* store);
     };
 
-#ifndef __linux__
+#if defined(_WIN32) || defined(_WIN64)
 #include "Windows.h"
 #include <future>
 #include <intrin.h>

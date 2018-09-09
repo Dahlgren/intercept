@@ -2,9 +2,9 @@
 #include "controller.hpp"
 #include "extensions.hpp"
 #include "shared/client_types.hpp"
-#ifdef __linux__
+#if !(defined(_WIN32) || defined(_WIN64))
 #include <dlfcn.h>
-#include <link.h>
+//#include <link.h>
 #endif
 
 namespace intercept {
@@ -192,10 +192,10 @@ namespace intercept {
         auto signal_func_it = signal_module->second.signal_funcs.find(signal_name);
         module::on_signal_func signal_func;
         if (signal_func_it == signal_module->second.signal_funcs.end()) {
-        #ifdef __linux__
-            signal_func = reinterpret_cast<module::on_signal_func>(dlsym(signal_module->second.handle, signal_name.c_str()));
-        #else
+        #if defined(_WIN32) || defined(_WIN64)
             signal_func = reinterpret_cast<module::on_signal_func>(GetProcAddress(signal_module->second.handle, signal_name.c_str())); //#TODO why?! The signal module function thingy is commented out.. also has a #TODO with ?! on it
+        #else
+            signal_func = reinterpret_cast<module::on_signal_func>(dlsym(signal_module->second.handle, signal_name.c_str()));
         #endif
             if (!signal_func)
                 return false;

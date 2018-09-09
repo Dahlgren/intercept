@@ -21,10 +21,10 @@ https://github.com/NouberNou/intercept
 #include "signing.hpp"
 #include "search.hpp"
 
-#if __linux__
-#define DLL_HANDLE void *
-#else
+#if defined(_WIN32) || defined(_WIN64)
 #define DLL_HANDLE HMODULE
+#else
+#define DLL_HANDLE void *
 #endif
 
 #define EXP_FNC_typedef(name, ...) typedef void(CDECL * name##_func)(__VA_ARGS__);
@@ -189,10 +189,10 @@ namespace intercept {
             /*!
             @brief The path of the loaded module
             */
-        #ifdef __linux
-            std::string
-        #else
+        #if defined(_WIN32) || defined(_WIN64)
             std::wstring
+        #else
+            std::string
         #endif
             path;
 

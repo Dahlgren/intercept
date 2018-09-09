@@ -1,5 +1,5 @@
 #include "signing.hpp"
-#ifndef __linux__
+#if defined(_WIN32) || defined(_WIN64)
 #include <wincrypt.h>
 #include <wintrust.h>
 #include <windows.h>

@@ -2,13 +2,13 @@
 #include "controller.hpp"
 #include <thread>
 #include <future>
-#ifdef __linux__
-#include <dlfcn.h>
-#include <link.h>
-#else
+#if defined(_WIN32) || defined(_WIN64)
 #include <Psapi.h>
 #pragma comment (lib, "Psapi.lib")//GetModuleInformation
 #pragma comment (lib, "version.lib") //GetFileVersionInfoSize
+#else
+#include <dlfcn.h>
+//#include <link.h>
 #endif
 //template class intercept::types::rv_allocator<intercept::__internal::gsFunction>;
 //template class intercept::types::rv_allocator<intercept::__internal::gsOperator>;
@@ -81,7 +81,13 @@ namespace intercept {
     void loader::do_function_walk(uintptr_t state_addr_) {
         game_state_ptr = reinterpret_cast<game_state*>(state_addr_);
 
-    #ifdef __linux__
+    #if defined(_WIN32) || defined(_WIN64)
+        MODULEINFO modInfo = { nullptr };
+        HMODULE hModule = GetModuleHandleA(nullptr);
+        GetModuleInformation(GetCurrentProcess(), hModule, &modInfo, sizeof(MODULEINFO));
+        const uintptr_t baseAddress = reinterpret_cast<uintptr_t>(modInfo.lpBaseOfDll);
+        const uintptr_t moduleSize = static_cast<uintptr_t>(modInfo.SizeOfImage);
+    #else
         std::ifstream maps("/proc/self/maps");
         uintptr_t start;
         uintptr_t end;
@@ -92,12 +98,6 @@ namespace intercept {
         //uintptr_t moduleSize = 35000000; //35MB hardcoded till I find out how to detect it properly
         uintptr_t baseAddress = start;
         uintptr_t moduleSize = end - start;
-    #else
-        MODULEINFO modInfo = { nullptr };
-        HMODULE hModule = GetModuleHandleA(nullptr);
-        GetModuleInformation(GetCurrentProcess(), hModule, &modInfo, sizeof(MODULEINFO));
-        const uintptr_t baseAddress = reinterpret_cast<uintptr_t>(modInfo.lpBaseOfDll);
-        const uintptr_t moduleSize = static_cast<uintptr_t>(modInfo.SizeOfImage);
     #endif
         //std::cout << "base - size" << std::hex << baseAddress << moduleSize << "\n";
         auto findInMemory = [baseAddress, moduleSize](const char* pattern, size_t patternLength) ->uintptr_t {
@@ -401,9 +401,9 @@ namespace intercept {
         if (evaluate_script_function) {
             _allocator.evaluate_func = [](const game_data_code& code, void* ns, const r_string& name) -> game_value {
                 typedef game_value*(__thiscall *evaluate_func) (game_state* gs, game_value& ret, const r_string& code, void* instruction_list, void* context, void* ns, const r_string& name);
-                
+
                 evaluate_func func = reinterpret_cast<evaluate_func>(loader::get().evaluate_script_function);
-                
+
 
                 struct contextType {
                     bool _local;
@@ -443,7 +443,7 @@ namespace intercept {
         return _sqf_register_funcs;
     }
 
-#ifdef __linux__
+#if !(defined(_WIN32) || defined(_WIN64))
 #include <unistd.h>     // getpid...
     bool IsBadReadPtr(void *ptr, size_t size) {
         int result = access((const char *) ptr, F_OK);

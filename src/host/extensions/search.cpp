@@ -3,7 +3,6 @@
 #include <iterator>
 #include <algorithm>
 #include <regex>
-#include <experimental/filesystem>
 #include <string_view>
 
 using namespace std::literals::string_view_literals;
@@ -15,24 +14,24 @@ namespace intercept::search {
         for (auto& file : pboList) {
             //std::cout << "mod " << file << "\n";
             size_t last_index = file.find_last_of(
-            #ifdef __linux__
-                "\\/"
-            #else
+            #if defined(_WIN32) || defined(_WIN64)
                 L"\\/"
+            #else
+                "\\/"
             #endif
             );
-        #ifdef __linux__
-            std::string
-        #else
+        #if defined(_WIN32) || defined(_WIN64)
             std::wstring
+        #else
+            std::string
         #endif
             path = file.substr(0, last_index);
             //std::cout << "path " << path << "\n";
             last_index = path.find_last_of(
-            #ifdef __linux__
-                "\\/"
-            #else
+            #if defined(_WIN32) || defined(_WIN64)
                 L"\\/"
+            #else
+                "\\/"
             #endif
             );
             path = path.substr(0, last_index);
@@ -43,7 +42,9 @@ namespace intercept::search {
     }
 
     std::string plugin_searcher::get_command_line() {
-    #if __linux__
+    #if defined(_WIN32) || defined(_WIN64)
+        return GetCommandLineA();
+    #else
         std::ifstream cmdline("/proc/self/cmdline");
         std::string file_contents;
         std::string line;
@@ -52,25 +53,9 @@ namespace intercept::search {
             file_contents.push_back(' ');
         }
         return file_contents;
-    #else
-        return GetCommandLineA();
     #endif
     }
-#ifdef __linux__
-    std::optional<std::string> plugin_searcher::find_extension(const std::string& name) {
-        LOG(INFO, "Searching for Extension: {}", name);
-        for (auto folder : active_mod_folder_list) {
-            std::string test_path = folder + "/intercept/" + name + ".so";
-
-            std::ifstream check_file(test_path);
-            if (check_file.good()) {
-                return test_path;
-            }
-        }
-        LOG(ERROR, "Client plugin: {} was not found.", name);
-        return std::optional<std::string>();
-    }
-#else
+#if defined(_WIN32) || defined(_WIN64)
     std::optional<std::wstring> plugin_searcher::find_extension(const std::wstring& name) {
         //LOG(INFO, L"Searching for Extension: {}", name);
         for (auto folder : active_mod_folder_list) {
@@ -87,6 +72,20 @@ namespace intercept::search {
         }
         return std::optional<std::wstring>();
     }
+#else
+    std::optional<std::string> plugin_searcher::find_extension(const std::string& name) {
+        LOG(INFO, "Searching for Extension: {}", name);
+        for (auto folder : active_mod_folder_list) {
+            std::string test_path = folder + "/intercept/" + name + ".so";
+
+            std::ifstream check_file(test_path);
+            if (check_file.good()) {
+                return test_path;
+            }
+        }
+        LOG(ERROR, "Client plugin: {} was not found.", name);
+        return std::optional<std::string>();
+    }
 #endif
 }
 
@@ -96,34 +95,7 @@ namespace intercept::search {
 
 
 
-#if __linux__
-#include <string.h>
-#include <stdio.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/resource.h>
-std::vector<std::string> intercept::search::plugin_searcher::generate_pbo_list() {
-    std::vector<std::string> _active_pbo_list;
-    char buff[PATH_MAX];
-
-    struct dirent *dp;
-    DIR *dir = opendir("/proc/self/fd");
-    while ((dp = readdir(dir)) != NULL) {
-
-        ssize_t len = ::readlink((std::string("/proc/self/fd/") + dp->d_name).c_str(), buff, sizeof(buff) - 1);
-        if (len != -1) {
-            buff[len] = '\0';
-            _active_pbo_list.emplace_back(buff);
-        }
-    }
-    closedir(dir);
-    //std::cout << "gen pbolist done\n";
-    return _active_pbo_list;
-}
-
-#else
+#if defined(_WIN32) || defined(_WIN64)
 
 #undef ERROR //Silence macro overwrite warning
 #include <windows.h>
@@ -370,6 +342,34 @@ std::vector<std::wstring> intercept::search::plugin_searcher::generate_pbo_list(
 
     free(handleInfo);
 
+    return _active_pbo_list;
+}
+
+#else
+
+#include <string.h>
+#include <stdio.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/resource.h>
+std::vector<std::string> intercept::search::plugin_searcher::generate_pbo_list() {
+    std::vector<std::string> _active_pbo_list;
+    char buff[PATH_MAX];
+
+    struct dirent *dp;
+    DIR *dir = opendir("/proc/self/fd");
+    while ((dp = readdir(dir)) != NULL) {
+
+        ssize_t len = ::readlink((std::string("/proc/self/fd/") + dp->d_name).c_str(), buff, sizeof(buff) - 1);
+        if (len != -1) {
+            buff[len] = '\0';
+            _active_pbo_list.emplace_back(buff);
+        }
+    }
+    closedir(dir);
+    //std::cout << "gen pbolist done\n";
     return _active_pbo_list;
 }
 

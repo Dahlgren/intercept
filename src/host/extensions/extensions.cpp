@@ -2,9 +2,9 @@
 #include "controller.hpp"
 #include "export.hpp"
 #include "invoker.hpp"
-#ifdef __linux__
+#if !(defined(_WIN32) || defined(_WIN64))
 #include <dlfcn.h>
-#include <link.h>
+//#include <link.h>
 #endif
 
 #define PLUGIN_MIN_API_VERSION 1
@@ -82,7 +82,7 @@ namespace intercept {
 
     bool extensions::load(const std::string& path_, std::optional<std::string> certPath) {
 
-    #ifndef __linux__
+    #if defined(_WIN32) || defined(_WIN64)
         using string_type = std::wstring;
         using string_view_type = std::wstring_view;
         static const string_view_type bad_chars = L".\\/:?\"<>|"sv;
@@ -122,7 +122,7 @@ namespace intercept {
             
 
         cert::signing::security_class security_class = cert::signing::security_class::core;
-    #ifndef __linux__
+    #if defined(_WIN32) || defined(_WIN64)
         if (certPath && certPath->length() != 0) { //certificate check
             r_string certData = invoker::get().invoke_raw("loadfile", *certPath);
             auto res = _signTool.verifyCert(*full_path, certData);
@@ -158,7 +158,7 @@ namespace intercept {
 
 
 
-#ifndef __linux__  //Lazyness
+#if defined(_WIN32) || defined(_WIN64)
         if (do_reload) {
             LOG(INFO, "Loading plugin from temp file.");
             wchar_t tmpPath[MAX_PATH + 1], buffer[MAX_PATH + 1];
@@ -184,23 +184,23 @@ namespace intercept {
         }
 #endif
 
-#ifdef __linux__
-        auto dllHandle = dlopen(full_path->c_str(), RTLD_NOW | RTLD_GLOBAL);
-        if (!dllHandle) {
-            invoker::get().invoke_raw("diag_log", fmt::format("Intercept: LoadLibrary() failed, e={} [{}]", dlerror(), path_));
-            LOG(ERROR, "LoadLibrary() failed, e={} [{}]", dlerror(), path_);
-            return false;
-        }
-#else
+#if defined(_WIN32) || defined(_WIN64)
         auto dllHandle = LoadLibraryW(full_path->c_str());
         if (!dllHandle) {
             invoker::get().invoke_raw("diag_log", fmt::format("Intercept: LoadLibrary() failed, e={} [{}]", GetLastError(), path_));
             LOG(ERROR, "LoadLibrary() failed, e={} [{}]", GetLastError(), path_);
             return false;
         }
+#else
+        auto dllHandle = dlopen(full_path->c_str(), RTLD_NOW | RTLD_GLOBAL);
+        if (!dllHandle) {
+            invoker::get().invoke_raw("diag_log", fmt::format("Intercept: LoadLibrary() failed, e={} [{}]", dlerror(), path_));
+            LOG(ERROR, "LoadLibrary() failed, e={} [{}]", dlerror(), path_);
+            return false;
+        }
 #endif
 
-    #ifndef __linux__
+    #if defined(_WIN32) || defined(_WIN64)
         length = WideCharToMultiByte(CP_UTF8, 0, (*full_path).data(), (*full_path).length(), nullptr, 0, nullptr, nullptr);
         std::string utf8_name;
         utf8_name.resize(length);
@@ -211,10 +211,10 @@ namespace intercept {
 
         auto new_module = module::entry(utf8_name, dllHandle, security_class);
 
-#ifdef __linux__
-#define GET_PROC_ADDR dlsym
-#else
+#if defined(_WIN32) || defined(_WIN64)
 #define GET_PROC_ADDR GetProcAddress
+#else
+#define GET_PROC_ADDR dlsym
 #endif
 
         new_module.functions.api_version = reinterpret_cast<module::api_version_func>(GET_PROC_ADDR(dllHandle, "api_version"));
@@ -247,7 +247,7 @@ namespace intercept {
             LOG(ERROR, "Module {} failed to define the client_eventhandlers_clear function.", path_);
             return false;
         }
-#ifndef __linux__
+#if defined(_WIN32) || defined(_WIN64)
         if (security_class == cert::signing::security_class::not_signed && is_signed_function && is_signed_function()) {
             invoker::get().invoke_raw("diag_log", fmt::format("Intercept: Module {} is not code signed but says it should be.", path_));
             LOG(ERROR, "Module {} is not code signed but says it should be.", path_);
@@ -281,7 +281,7 @@ namespace intercept {
 
 
         _modules[path_] = new_module;
-#ifndef __linux__
+#if defined(_WIN32) || defined(_WIN64)
         _module_security_classes[reinterpret_cast<uintptr_t>(dllHandle)] = security_class;
 #endif
 
@@ -324,12 +324,12 @@ namespace intercept {
         if (module->second.functions.handle_unload_internal) module->second.functions.handle_unload_internal();
         if (module->second.functions.handle_unload) module->second.functions.handle_unload();
 
-#ifdef __linux
-        if (dlclose(module->second.handle)) {  //returms 0 on success
-            LOG(INFO, "dlclose() failed during unload, e={}", dlerror());
-#else
+#if defined(_WIN32) || defined(_WIN64)
         if (!FreeLibrary(module->second.handle)) {
             LOG(INFO, "FreeLibrary() failed during unload, e={}", GetLastError());
+#else
+        if (dlclose(module->second.handle)) {  //returms 0 on success
+            LOG(INFO, "dlclose() failed during unload, e={}", dlerror());
 #endif
             return false;
         }

@@ -9,20 +9,20 @@ namespace intercept::search {
         plugin_searcher();
         //This is here because it's easier to crossplatform n stuff
         static std::string get_command_line();
-    #ifdef __linux__
-        std::optional<std::string> find_extension(const std::string& name);
-    #else 
+    #if defined(_WIN32) || defined(_WIN64)
         std::optional<std::wstring> find_extension(const std::wstring& name);
+    #else
+        std::optional<std::string> find_extension(const std::string& name);
     #endif
         
         
     private:
-    #ifdef __linux__
-        static std::vector<std::string> generate_pbo_list();
-        std::vector<std::string> active_mod_folder_list;
-    #else 
+    #if defined(_WIN32) || defined(_WIN64)
         static std::vector<std::wstring> generate_pbo_list();
         std::vector<std::wstring> active_mod_folder_list;
+    #else
+        static std::vector<std::string> generate_pbo_list();
+        std::vector<std::string> active_mod_folder_list;
     #endif
     };
 }

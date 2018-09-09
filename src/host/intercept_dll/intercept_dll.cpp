@@ -147,7 +147,7 @@ CleanupLogging() {
     spdlog::drop_all();
 }
 
-#ifndef __linux__
+#if defined(_WIN32) || defined(_WIN64)
 BOOL APIENTRY DllMain(HMODULE hModule,
                       DWORD ul_reason_for_call,
                       LPVOID lpReserved) {
