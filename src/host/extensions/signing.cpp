@@ -129,7 +129,7 @@ std::pair<intercept::cert::signing::security_class, std::optional<std::string>> 
         &hStore,
         &hMsg,
         nullptr);
-    if (!fResult) return {security_class::not_signed, fmt::format("CryptQueryObject failed: {}", GetLastError())};
+    if (!fResult) return {security_class::not_signed, fmt::format(FMT_STRING("CryptQueryObject failed: {}"), GetLastError())};
 
     // Get signer information size.
     fResult = CryptMsgGetParam(hMsg,
@@ -138,7 +138,7 @@ std::pair<intercept::cert::signing::security_class, std::optional<std::string>> 
         nullptr,
         &dwSignerInfo);
     if (!fResult) {
-        auto errmsg = fmt::format("CryptMsgGetParam failed: {}", GetLastError());
+        auto errmsg = fmt::format(FMT_STRING("CryptMsgGetParam failed: {}"), GetLastError());
         return {security_class::not_signed, errmsg};
     }
 
@@ -156,7 +156,7 @@ std::pair<intercept::cert::signing::security_class, std::optional<std::string>> 
         &dwSignerInfo);
 
     if (!fResult) {
-        auto errmsg = fmt::format("CryptMsgGetParam failed: {}", GetLastError());
+        auto errmsg = fmt::format(FMT_STRING("CryptMsgGetParam failed: {}"), GetLastError());
         return {security_class::not_signed, "LocalAlloc for signerInfo failed"};
     }
 
@@ -168,7 +168,7 @@ std::pair<intercept::cert::signing::security_class, std::optional<std::string>> 
     //create in-memory CertStore to hold our CA
     ManagedObject<HCERTSTORE, CertCloseStore> hMemoryStore = CertOpenStore(CERT_STORE_PROV_MEMORY, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, NULL, 0, nullptr);
     if (!hMemoryStore) {
-        auto errmsg = fmt::format("CertOpenStore failed: {}", GetLastError());
+        auto errmsg = fmt::format(FMT_STRING("CertOpenStore failed: {}"), GetLastError());
         return {security_class::not_signed, errmsg};
     }
 
@@ -217,7 +217,7 @@ std::pair<intercept::cert::signing::security_class, std::optional<std::string>> 
         nullptr);
 
     if (!pCertContext) {
-        auto errmsg = fmt::format("CertFindCertificateInStore failed: {}", GetLastError());
+        auto errmsg = fmt::format(FMT_STRING("CertFindCertificateInStore failed: {}"), GetLastError());
         return {security_class::not_signed, errmsg};
     }
 
@@ -253,7 +253,7 @@ std::pair<intercept::cert::signing::security_class, std::optional<std::string>> 
         &hChainEngine);
     //auto err = GetLastError();
     if (!ret4) {
-        auto errmsg = fmt::format("CertCreateCertificateChainEngine failed: {}", GetLastError());
+        auto errmsg = fmt::format(FMT_STRING("CertCreateCertificateChainEngine failed: {}"), GetLastError());
         return {security_class::not_signed, errmsg};
     }
 

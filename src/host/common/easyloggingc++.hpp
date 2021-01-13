@@ -22,7 +22,7 @@
 #endif
 #define ERROR logging::logfile->error
 
-#define LOG(LEVEL, ...) LEVEL(__VA_ARGS__)
+#define LOG(LEVEL, LOG_STR, ...) LEVEL(FMT_STRING(LOG_STR), ##__VA_ARGS__)
 
 #define INITIALIZE_EASYLOGGINGPP std::shared_ptr<spdlog::logger> logging::logfile{};
 //#define SPDLOG_FMT_PRINTF
