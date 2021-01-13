@@ -3,6 +3,8 @@
 #include <fstream>
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/ostr.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/sinks/stdout_sinks.h"
 
 #ifdef _DEBUG
 #define SPDLOG_TRACE_ON
